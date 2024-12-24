@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertical Falling Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111;
+            position: relative;
+        }
+
+        #backgroundImage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            opacity: 0.8;
+            filter: brightness(0.9) blur(0px);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+      
+        #gameArea {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        
+        #playArea {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background-color: transparent;
+            overflow: hidden;
+        }
+
+       
+        .player {
+    width: 100px;
+    height: 100px;
+    background-image: url('image.png');
+    background-size: contain; /* Ensures the image fits */
+    background-repeat: no-repeat; /* Prevents tiling */
+    position: absolute;
+    left: 50%;
+    bottom: 10%;
+    transform: translateX(-50%);
+    border-radius: 10%;
+    z-index: 2;
+}
+
+
+       
+        .coin, .stone {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .coin {
+            background-image: url('apple.png');
+            background-size: cover;
+            background-position: center;
+            background-color: transparent;
+        }
+
+        .stone {
+            background-image: url('stones.png');
+            background-size: cover;
+            background-position: center;
+            background-color: transparent;
+        }
+
+        
+        #points {
+    position: absolute;
+    top: 10px; 
+    left: 10px; 
+    font-size: 30px;
+    font-weight: bold;
+    color: rgba(255, 255, 0, 0.273);
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+    z-index: 9; 
+}
+
+
+       
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="backgroundImage" style="background-image: url('t4.jpg');"></div>
+
+    <div id="gameArea">
+        <div id="playArea">
+            <div id="player" class="player"></div>
+            <div id="points">Points: 0</div>
+            <div id="message">Say "Run" to Start!</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let points = 0;
+        const player = document.getElementById('player');
+        const playArea = document.getElementById('playArea');
+        const pointsElement = document.getElementById('points');
+        const messageElement = document.getElementById('message');
+        let isRunning = false;
+        let playerPosition = 1;
+        let gameObjects = [];
+        let isMoving = false;
+
+        
+        messageElement.style.display = "block";
+
+        
+        function createObject() {
+            const obj = document.createElement('div');
+            const isCoin = Math.random() > 0.5;
+            obj.classList.add(isCoin ? 'coin' : 'stone');
+            obj.style.left = `${(playArea.offsetWidth / 2) - 15}px`;
+            obj.style.top = `0px`;
+            playArea.appendChild(obj);
+            gameObjects.push({ element: obj, isCoin });
+            moveObjectDown(obj, isCoin);
+        }
+
+        function moveObjectDown(obj, isCoin) {
+            let position = 0;
+
+            const interval = setInterval(() => {
+                position += 5;
+                obj.style.top = `${position}px`;
+
+                if (position > playArea.offsetHeight) {
+                    clearInterval(interval);
+                    obj.remove();
+                    gameObjects = gameObjects.filter(item => item.element !== obj);
+                }
+
+                checkCollision(obj, isCoin, interval);
+            }, 30);
+        }
+
+        function checkCollision(obj, isCoin, interval) {
+            const playerRect = player.getBoundingClientRect();
+            const objRect = obj.getBoundingClientRect();
+
+            if (
+                objRect.top < playerRect.bottom &&
+                objRect.bottom > playerRect.top &&
+                objRect.left < playerRect.right &&
+                objRect.right > playerRect.left
+            ) {
+                if (isCoin) {
+                    points += 10;
+                } else {
+                    points -= 20;
+                    gameOver();
+                }
+
+                pointsElement.textContent = `Points: ${points}`;
+                clearInterval(interval);
+                obj.remove();
+                gameObjects = gameObjects.filter(item => item.element !== obj);
+            }
+        }
+
+        function gameOver() {
+    clearInterval(gameLoopInterval);
+    gameObjects.forEach(obj => {
+        clearInterval(obj.interval);
+        obj.element.remove();
+    });
+    gameObjects = [];
+    Swal.fire({
+        title: 'Game Over',
+        text: `Final Score: ${points}`,
+        icon: 'error',
+        confirmButtonText: 'Try Again',
+    }).then(() => {
+        
+        window.location.href = 'demo.html'; 
+    });
+}
+
+
+function resetGame() {
+   
+    points = 0;
+    playerPosition = 1;
+    pointsElement.textContent = `Points: ${points}`;
+    player.style.left = '50%';
+    messageElement.style.display = "block";
+    isRunning = false;
+    gameObjects = [];
+}
+
+
+        function youWin() {
+            clearInterval(gameLoopInterval);
+            gameObjects.forEach(obj => {
+                clearInterval(obj.interval);
+                obj.element.remove();
+            });
+            gameObjects = [];
+            Swal.fire({
+                title: 'You Win!',
+                text: `Final Score: ${points}`,
+                icon: 'success',
+                confirmButtonText: 'Play Again'
+            });
+            recognition.stop();
+        }
+
+        function movePlayer(direction) {
+    const positions = ['10%', '50%', '80%'];
+
+    if (direction === "left" && playerPosition > 0) {
+        playerPosition -= 1; // Move one step left
+    } else if (direction === "right" && playerPosition < 2) {
+        playerPosition += 1; // Move one step right
+    }
+
+    
+    player.style.left = positions[playerPosition];
+}
+
+
+
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[event.resultIndex][0].transcript.toLowerCase();
+
+            if (transcript.includes("run") && !isRunning) {
+                isRunning = true;
+                messageElement.style.display = "none";
+                gameLoop();
+            } else if (transcript.includes("left") && playerPosition > 0) {
+                movePlayer("left");
+            } else if (transcript.includes("right") && playerPosition < 2) {
+                movePlayer("right");
+            }
+        };
+
+        recognition.onstart = () => {
+            console.log("Voice recognition started");
+        };
+
+        recognition.onerror = (event) => {
+            console.log("Error occurred in recognition: ", event.error);
+        };
+
+        recognition.start();
+
+        let gameLoopInterval;
+        function gameLoop() {
+            gameLoopInterval = setInterval(() => {
+                if (isRunning) {
+                    createObject();
+                    if (points >= 100) { 
+                        youWin();
+                    }
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
